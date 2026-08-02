@@ -1,0 +1,6 @@
+{
+  "name": "RJNX Game Booster",
+  "description": "Cyberpunk high-performance Game Booster app with live FPS/System HUD, One-Tap memory optimizer, floating game panel overlay, per-game settings, DND notification cleaner, and screen recorder.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
