@@ -135,6 +135,31 @@ fun CyberBackgroundCanvas(
             )
         }
 
+        // 4b. Radiating 3D Light Rays from Center Reactor
+        val centerX = width / 2f
+        val centerY = height / 2f
+        val rayCount = 8
+        for (r in 0 until rayCount) {
+            val rayAngle = (animTime * 0.2f + r * (360f / rayCount)) * (Math.PI / 180.0)
+            val rayEndX = centerX + Math.cos(rayAngle).toFloat() * width * 0.7f
+            val rayEndY = centerY + Math.sin(rayAngle).toFloat() * height * 0.7f
+
+            drawLine(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        NeonCyan.copy(alpha = 0.18f),
+                        NeonRed.copy(alpha = 0.08f),
+                        Color.Transparent
+                    ),
+                    start = Offset(centerX, centerY),
+                    end = Offset(rayEndX, rayEndY)
+                ),
+                start = Offset(centerX, centerY),
+                end = Offset(rayEndX, rayEndY),
+                strokeWidth = 3f
+            )
+        }
+
         // 5. Corner Ambient Neon Glows
         drawCircle(
             brush = Brush.radialGradient(

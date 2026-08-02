@@ -39,7 +39,7 @@ fun SystemMonitorScreen(
         modifier = modifier
             .fillMaxSize()
             .background(CyberBlack)
-            .padding(12.dp),
+            .padding(top = 52.dp, bottom = 60.dp, start = 12.dp, end = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Left Column: Network & Memory

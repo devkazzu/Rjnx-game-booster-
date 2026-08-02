@@ -8,12 +8,15 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.db.GameEntity
+import com.example.ui.components.CyberBottomBar
 import com.example.ui.components.CyberConsoleNavRail
 import com.example.ui.components.CyberRightTelemetryDrawer
 import com.example.ui.components.CyberTab
@@ -50,101 +53,100 @@ class MainActivity : ComponentActivity() {
                         onSplashFinished = { showSplashScreen = false }
                     )
                 } else {
-                    Row(
+                    Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(CyberBlack)
-                            .windowInsetsPadding(WindowInsets.systemBars)
                     ) {
-                        // 1. Left Console Side Navigation Rail
-                        if (activeTuningGame == null) {
-                            CyberConsoleNavRail(
-                                currentTab = currentTab,
-                                onTabSelected = { currentTab = it },
-                                onQuickBoostClick = { viewModel.triggerOneTapBoost() }
-                            )
-                        }
-
-                        // 2. Central Display Area
-                        Column(
+                        // 1. Primary 3D View Screen
+                        Box(
                             modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
+                                .fillMaxSize()
                         ) {
-                            // Top Status Ticker Header
-                            CyberTopHeader(
-                                systemStats = uiState.stats,
-                                activeMode = uiState.selectedMode,
-                                isHudDrawerOpen = isHudDrawerOpen,
-                                onToggleHudDrawer = { isHudDrawerOpen = !isHudDrawerOpen }
-                            )
-
-                            // Main Console Display View
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth()
-                            ) {
-                                if (activeTuningGame != null) {
-                                    GameSettingsScreen(
-                                        game = activeTuningGame!!,
-                                        onSaveGame = { updated ->
-                                            viewModel.updateGameSettings(updated)
-                                            activeTuningGame = null
-                                        },
-                                        onBack = { activeTuningGame = null }
-                                    )
-                                } else {
-                                    when (currentTab) {
-                                        CyberTab.HOME -> {
-                                            HomeScreen(
-                                                uiState = uiState,
-                                                onBoostClick = { viewModel.triggerOneTapBoost() },
-                                                onDismissBoostResult = { viewModel.dismissBoostResult() },
-                                                onSelectMode = { viewModel.setPerformanceMode(it) },
-                                                onLaunchGame = { viewModel.launchGame(it) },
-                                                onToggleFavorite = { pkg, fav -> viewModel.toggleFavorite(pkg, fav) },
-                                                onToggleOverlay = { viewModel.toggleOverlay(uiState.overlayEnabled) },
-                                                onToggleDnd = { viewModel.toggleDnd() },
-                                                onToggleRecording = { viewModel.toggleRecording() }
-                                            )
-                                        }
-                                        CyberTab.GAMES -> {
-                                            GameLibraryScreen(
-                                                uiState = uiState,
-                                                onLaunchGame = { viewModel.launchGame(it) },
-                                                onToggleFavorite = { pkg, fav -> viewModel.toggleFavorite(pkg, fav) },
-                                                onToggleHidden = { pkg, hid -> viewModel.toggleHidden(pkg, hid) },
-                                                onOpenGameSettings = { activeTuningGame = it },
-                                                onScanInstalledGames = { viewModel.scanInstalledGames() },
-                                                onAddCustomGame = { pkg, title, cat -> viewModel.addGame(pkg, title, cat) }
-                                            )
-                                        }
-                                        CyberTab.PERFORMANCE -> {
-                                            PerformanceScreen(
-                                                uiState = uiState,
-                                                onSelectMode = { viewModel.setPerformanceMode(it) }
-                                            )
-                                        }
-                                        CyberTab.MONITOR -> {
-                                            SystemMonitorScreen(
-                                                uiState = uiState
-                                            )
-                                        }
-                                        CyberTab.SETTINGS -> {
-                                            SettingsScreen(
-                                                uiState = uiState,
-                                                onToggleOverlay = { viewModel.toggleOverlay(uiState.overlayEnabled) },
-                                                onToggleDnd = { viewModel.toggleDnd() },
-                                                onReplaySplash = { showSplashScreen = true }
-                                            )
-                                        }
+                            if (activeTuningGame != null) {
+                                GameSettingsScreen(
+                                    game = activeTuningGame!!,
+                                    onSaveGame = { updated ->
+                                        viewModel.updateGameSettings(updated)
+                                        activeTuningGame = null
+                                    },
+                                    onBack = { activeTuningGame = null }
+                                )
+                            } else {
+                                when (currentTab) {
+                                    CyberTab.HOME -> {
+                                        HomeScreen(
+                                            uiState = uiState,
+                                            onBoostClick = { viewModel.triggerOneTapBoost() },
+                                            onDismissBoostResult = { viewModel.dismissBoostResult() },
+                                            onSelectMode = { viewModel.setPerformanceMode(it) },
+                                            onLaunchGame = { viewModel.launchGame(it) },
+                                            onToggleFavorite = { pkg, fav -> viewModel.toggleFavorite(pkg, fav) },
+                                            onToggleOverlay = { viewModel.toggleOverlay(uiState.overlayEnabled) },
+                                            onToggleDnd = { viewModel.toggleDnd() },
+                                            onToggleRecording = { viewModel.toggleRecording() }
+                                        )
+                                    }
+                                    CyberTab.GAMES -> {
+                                        GameLibraryScreen(
+                                            uiState = uiState,
+                                            onLaunchGame = { viewModel.launchGame(it) },
+                                            onToggleFavorite = { pkg, fav -> viewModel.toggleFavorite(pkg, fav) },
+                                            onToggleHidden = { pkg, hid -> viewModel.toggleHidden(pkg, hid) },
+                                            onOpenGameSettings = { activeTuningGame = it },
+                                            onScanInstalledGames = { viewModel.scanInstalledGames() },
+                                            onAddCustomGame = { pkg, title, cat -> viewModel.addGame(pkg, title, cat) }
+                                        )
+                                    }
+                                    CyberTab.PERFORMANCE -> {
+                                        PerformanceScreen(
+                                            uiState = uiState,
+                                            onSelectMode = { viewModel.setPerformanceMode(it) }
+                                        )
+                                    }
+                                    CyberTab.MONITOR -> {
+                                        SystemMonitorScreen(
+                                            uiState = uiState
+                                        )
+                                    }
+                                    CyberTab.SETTINGS -> {
+                                        SettingsScreen(
+                                            uiState = uiState,
+                                            onToggleOverlay = { viewModel.toggleOverlay(uiState.overlayEnabled) },
+                                            onToggleDnd = { viewModel.toggleDnd() },
+                                            onReplaySplash = { showSplashScreen = true }
+                                        )
                                     }
                                 }
                             }
                         }
 
-                        // 3. Right Telemetry Side Panel (Drawer)
+                        // 2. Floating Top Gaming HUD Header
+                        if (activeTuningGame == null) {
+                            CyberTopHeader(
+                                systemStats = uiState.stats,
+                                activeMode = uiState.selectedMode,
+                                isHudDrawerOpen = isHudDrawerOpen,
+                                onToggleHudDrawer = { isHudDrawerOpen = !isHudDrawerOpen },
+                                modifier = Modifier
+                                    .align(Alignment.TopCenter)
+                                    .fillMaxWidth()
+                            )
+                        }
+
+                        // 3. Floating Bottom Gaming Console Navigation Dock
+                        if (activeTuningGame == null) {
+                            CyberBottomBar(
+                                currentTab = currentTab,
+                                onTabSelected = { currentTab = it },
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .fillMaxWidth(0.65f)
+                                    .padding(bottom = 6.dp)
+                            )
+                        }
+
+                        // 4. Floating Right Telemetry HUD Drawer
                         CyberRightTelemetryDrawer(
                             isOpen = isHudDrawerOpen,
                             systemStats = uiState.stats,

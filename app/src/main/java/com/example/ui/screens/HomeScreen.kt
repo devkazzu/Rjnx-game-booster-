@@ -64,8 +64,8 @@ fun HomeScreen(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(10.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(top = 52.dp, bottom = 60.dp, start = 12.dp, end = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // LEFT PANEL: Game Space Performance Engine Dock (~22% width)
             Column(

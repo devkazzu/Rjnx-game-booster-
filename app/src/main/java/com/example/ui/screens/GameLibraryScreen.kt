@@ -59,7 +59,7 @@ fun GameLibraryScreen(
         modifier = modifier
             .fillMaxSize()
             .background(CyberBlack)
-            .padding(horizontal = 16.dp)
+            .padding(top = 52.dp, bottom = 60.dp, start = 16.dp, end = 16.dp)
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
