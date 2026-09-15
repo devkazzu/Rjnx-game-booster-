@@ -8,7 +8,9 @@ import com.example.data.db.PerformanceHistoryEntity
 import com.example.data.model.BoostResult
 import com.example.data.model.PerformanceMode
 import com.example.data.model.SystemStats
+import com.example.data.TelemetryBus
 import com.example.data.preferences.DataStoreManager
+import com.example.service.GamingOverlayService
 import com.example.data.repository.GameRepository
 import com.example.data.repository.SystemMonitorRepository
 import com.example.utils.BoostManager
@@ -93,10 +95,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         systemMonitorRepository.systemStats,
         gameDataFlow,
         controlStateFlow,
-        recorderStateFlow
-    ) { stats, gameData, control, recorder ->
+        recorderStateFlow,
+        TelemetryBus.activeGame
+    ) { stats, gameData, control, recorder, activeGame ->
         MainUiState(
-            stats = stats.copy(activeMode = control.selectedMode),
+            stats = stats.copy(
+                activeMode = control.selectedMode,
+                activeGamePackage = activeGame?.packageName,
+                activeGameTitle = activeGame?.title
+            ),
             games = gameData.games,
             favoriteGames = gameData.favorites,
             hiddenGames = gameData.hidden,
@@ -120,6 +127,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             gameRepository.initializePresetGamesIfEmpty()
         }
+        viewModelScope.launch {
+            runCatching {
+                val stored = dataStoreManager.defaultMode.first()
+                _selectedMode.value = PerformanceMode.values().firstOrNull { it.name == stored }
+                    ?: _selectedMode.value
+            }
+        }
     }
 
     fun triggerOneTapBoost() {
@@ -138,6 +152,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setPerformanceMode(mode: PerformanceMode) {
         _selectedMode.value = mode
+        viewModelScope.launch { dataStoreManager.setDefaultMode(mode.name) }
     }
 
     fun toggleFavorite(packageName: String, currentFavorite: Boolean) {
@@ -166,7 +181,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun scanInstalledGames() {
         viewModelScope.launch {
-            gameRepository.scanAndScanInstalledGames()
+            gameRepository.scanInstalledGames()
         }
     }
 
@@ -184,7 +199,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleOverlay(current: Boolean) {
         viewModelScope.launch {
-            dataStoreManager.setOverlayEnabled(!current)
+            val enabled = !current
+            val app = getApplication<Application>()
+            if (enabled) {
+                // GamingOverlayService.start() returns false without "display over other apps".
+                if (GamingOverlayService.start(app)) {
+                    dataStoreManager.setOverlayEnabled(true)
+                }
+            } else {
+                GamingOverlayService.stop(app)
+                dataStoreManager.setOverlayEnabled(false)
+            }
         }
     }
 

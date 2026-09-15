@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- View ids used by the floating overlay HUD (created programmatically in GamingOverlayService). -->
+<resources>
+    <item name="overlay_telemetry_panel" type="id" />
+    <item name="overlay_fps" type="id" />
+    <item name="overlay_cpu_ram" type="id" />
+    <item name="overlay_net" type="id" />
+</resources>

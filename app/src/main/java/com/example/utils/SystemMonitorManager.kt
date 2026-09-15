@@ -8,6 +8,7 @@ import android.os.BatteryManager
 import android.os.Environment
 import android.os.StatFs
 import android.view.Choreographer
+import com.example.data.TelemetryBus
 import com.example.data.model.SystemStats
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -63,6 +64,9 @@ class SystemMonitorManager(private val context: Context) {
             while (isMonitoring) {
                 val stats = computeCurrentStats()
                 _systemStats.value = stats
+                // Mirror to the process-wide bus: services (floating HUD) live outside the
+                // Activity's ViewModel scope and cannot observe the flow above.
+                TelemetryBus.publish(stats)
                 delay(1000)
             }
         }
@@ -70,6 +74,7 @@ class SystemMonitorManager(private val context: Context) {
 
     fun stopMonitoring() {
         isMonitoring = false
+        Choreographer.getInstance().removeFrameCallback(frameCallback)
     }
 
     private fun computeCurrentStats(): SystemStats {

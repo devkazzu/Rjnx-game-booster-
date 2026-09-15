@@ -78,7 +78,7 @@ class GameRepository(private val context: Context) {
         }
     }
 
-    suspend fun scanAndScanInstalledGames(): List<GameEntity> = withContext(Dispatchers.IO) {
+    suspend fun scanInstalledGames(): List<GameEntity> = withContext(Dispatchers.IO) {
         val pm = context.packageManager
         val installedApps = pm.getInstalledApplications(0)
         val discoveredGames = mutableListOf<GameEntity>()

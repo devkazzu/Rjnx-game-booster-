@@ -2,6 +2,7 @@ package com.example.service
 
 import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
+import com.example.data.TelemetryBus
 import com.example.data.db.AppDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +19,7 @@ class GamingAccessibilityService : AccessibilityService() {
                 val db = AppDatabase.getDatabase(applicationContext)
                 val game = db.gameDao().getGameByPackage(packageName)
                 if (game != null && !game.isHidden) {
+                    TelemetryBus.setActiveGame(game.packageName, game.title)
                     GamingForegroundService.start(applicationContext)
                 }
             }

@@ -10,6 +10,8 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.example.MainActivity
+import com.example.R
+import com.example.data.TelemetryBus
 
 class GamingForegroundService : Service() {
 
@@ -55,9 +57,14 @@ class GamingForegroundService : Service() {
             this, 0, openAppIntent, PendingIntent.FLAG_IMMUTABLE
         )
 
+        TelemetryBus.setGamingModeActive(true)
+
+        val stats = TelemetryBus.stats.value
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("RJNX Cyber Gaming Mode Active")
-            .setContentText("FPS: 60 | CPU: 24% | RAM: 58% | DND: Active")
+            .setContentTitle(getString(R.string.gaming_notification_title))
+            .setContentText(
+                "FPS: ${stats.currentFps} | CPU: ${stats.cpuUsagePercent}% | RAM: ${stats.ramUsagePercent}%"
+            )
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
@@ -68,16 +75,21 @@ class GamingForegroundService : Service() {
         return START_STICKY
     }
 
+    override fun onDestroy() {
+        TelemetryBus.setGamingModeActive(false)
+        super.onDestroy()
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Gaming Mode Status",
+                getString(R.string.gaming_channel_name),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Shows real-time status of RJNX Game Booster"
+                description = getString(R.string.gaming_channel_description)
             }
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)

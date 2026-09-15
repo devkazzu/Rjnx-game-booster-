@@ -10,7 +10,10 @@ lifecycleRuntimeCompose = "2.8.7"
 activityCompose = "1.10.1"
 kotlin = "2.2.10"
 composeBom = "2024.09.00"
-googleDevtoolsKsp = "2.3.5"
+# KSP releases are pinned to the Kotlin compiler they were built against.
+# AGP 9.1.1 defaults to KGP 2.2.10, so KSP must use the matching 2.2.10-* line
+# (a bare "2.3.5" targets Kotlin 2.3.x and fails with "KSP requires Kotlin ...").
+googleDevtoolsKsp = "2.2.10-2.0.2"
 navigationCompose = "2.8.9"
 roomRuntime = "2.7.0"
 roomKtx = "2.7.0"

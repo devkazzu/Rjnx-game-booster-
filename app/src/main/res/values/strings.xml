@@ -1,3 +1,16 @@
 <resources>
     <string name="app_name">RJNX Booster</string>
+
+    <string name="accessibility_service_label">RJNX Game Detection</string>
+    <string name="accessibility_service_description">Lets RJNX Booster detect the game in the foreground so gaming mode, the FPS HUD and the notification cleaner can activate automatically. No window content is stored or uploaded.</string>
+
+    <string name="gaming_channel_name">Gaming mode status</string>
+    <string name="gaming_channel_description">Shows real-time status of RJNX Game Booster</string>
+    <string name="gaming_notification_title">RJNX Cyber Gaming Mode Active</string>
+    <string name="gaming_notification_text">Live telemetry running in the background</string>
+
+    <string name="overlay_channel_name">Gaming overlay</string>
+    <string name="overlay_channel_description">Keeps the floating FPS/telemetry panel alive while gaming</string>
+    <string name="overlay_notification_title">Floating HUD enabled</string>
+    <string name="overlay_notification_text">Drag the panel to reposition the telemetry overlay</string>
 </resources>
