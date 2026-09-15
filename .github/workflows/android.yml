@@ -101,7 +101,7 @@ jobs:
           KEY_PASSWORD: ci-upload-password
           KEY_ALIAS: upload
         # pipefail: a Gradle failure must fail the step, not just the tail of the pipeline
-        run: set -o pipefail && ./gradlew --no-daemon --stacktrace assembleDebug assembleRelease 2>&1 | tee build.log
+        run: set -o pipefail && ./gradlew --no-daemon --stacktrace --continue assembleDebug assembleRelease 2>&1 | tee build.log
 
       - name: APK summary
         if: success()
@@ -149,14 +149,20 @@ jobs:
           build_log, job_log = read("build.log"), read("job.log")
 
           chunks = []
+          # Kotlin/javac diagnostics are the useful part ("e: file:///...(12,3): ...").
+          diag = re.findall(r"^(?:e|w): file:///\S*?: \(\d+, \d+\): .*$", job_log, re.M)
+          if diag:
+              chunks.append("\n".join(dict.fromkeys(diag))[:4000])
+          errors = re.findall(r"^.*##\[error\].*$", job_log, re.M)
+          if errors:
+              chunks.append("\n".join(errors[-15:])[:1500])
           marker = build_log.find("* What went wrong")
           if marker != -1:
               end = build_log.find("* Try:", marker)
-              end = build_log.find("\n", end) if end != -1 else marker + 4000
-              chunks.append(build_log[marker:min(end + 400, marker + 6000)])
-          errors = re.findall(r"^.*##\[error\].*$", job_log, re.M)
-          if errors:
-              chunks.append("\n".join(errors[-12:]))
+              end = build_log.find("\n", end) if end != -1 else marker + 2000
+              chunks.append("failing tasks:\n" + "\n".join(
+                  sorted(set(re.findall(r"^> Task .* FAILED$", build_log, re.M)))
+              ) + "\n\n" + build_log[marker:min(end + 200, marker + 1500)])
           if not chunks:
               chunks.append(build_log[-3000:] or job_log[-3000:] or "no gradle output captured")
 
