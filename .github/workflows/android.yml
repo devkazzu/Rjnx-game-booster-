@@ -100,7 +100,8 @@ jobs:
           STORE_PASSWORD: ci-upload-password
           KEY_PASSWORD: ci-upload-password
           KEY_ALIAS: upload
-        run: ./gradlew --no-daemon --stacktrace assembleDebug assembleRelease 2>&1 | tee build.log
+        # pipefail: a Gradle failure must fail the step, not just the tail of the pipeline
+        run: set -o pipefail && ./gradlew --no-daemon --stacktrace assembleDebug assembleRelease 2>&1 | tee build.log
 
       - name: APK summary
         if: success()

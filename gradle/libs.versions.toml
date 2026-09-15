@@ -10,10 +10,11 @@ lifecycleRuntimeCompose = "2.8.7"
 activityCompose = "1.10.1"
 kotlin = "2.2.10"
 composeBom = "2024.09.00"
-# KSP releases are pinned to the Kotlin compiler they were built against.
-# AGP 9.1.1 defaults to KGP 2.2.10, so KSP must use the matching 2.2.10-* line
-# (a bare "2.3.5" targets Kotlin 2.3.x and fails with "KSP requires Kotlin ...").
-googleDevtoolsKsp = "2.2.10-2.0.2"
+# AGP 9 enables built-in Kotlin and org.jetbrains.kotlin.android is not compatible with its DSL,
+# so Room/Moshi codegen runs through KSP. KSP only supports built-in Kotlin from 2.3.1, and
+# 2.3.10 additionally fixes R-class resolution inside generated sources ("Using
+# kotlin.sourceSets DSL to add Kotlin sources is not allowed with built-in Kotlin").
+googleDevtoolsKsp = "2.3.12"
 navigationCompose = "2.8.9"
 roomRuntime = "2.7.0"
 roomKtx = "2.7.0"
