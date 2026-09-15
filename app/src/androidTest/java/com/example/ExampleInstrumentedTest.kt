@@ -1,5 +1,6 @@
 package com.example
 
+import com.example.BuildConfig
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.*
@@ -17,6 +18,8 @@ class ExampleInstrumentedTest {
   fun useAppContext() {
     // Context of the app under test.
     val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-    assertEquals("com.example", appContext.packageName)
+    // The namespace is com.example while the applicationId carries the AI Studio suffix,
+    // so assert against BuildConfig instead of a hard-coded id.
+    assertEquals(BuildConfig.APPLICATION_ID, appContext.packageName)
   }
 }

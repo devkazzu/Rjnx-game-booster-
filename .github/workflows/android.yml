@@ -1,35 +1,195 @@
-name: Build Android APK (No Wrapper)
+name: Build Android APK
 
+# Builds a signed, installable APK for RJNX Game Booster (debug + release).
+# AGP 9.1.1 requires Gradle >= 9.3.1, so the committed wrapper is used - never a distro package.
 on:
   workflow_dispatch:
   push:
     branches:
       - main
+      - arena/01a0a442-rjnx-game-booster # TEMP-TRIGGER: remove once merged into main
+  pull_request:
+
+permissions:
+  contents: read
+  checks: write
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ANDROID_BUILD_TOOLS: "36.0.0"
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false"
 
 jobs:
-  build:
+  apk:
+    name: Assemble debug + release APK
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v7
 
-      - name: Setup JDK 17
-        uses: actions/setup-java@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
 
-      - name: Install Gradle
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gradle
-          gradle -v
+      - name: Set up Android command line tools
+        uses: android-actions/setup-android@v4
+        continue-on-error: true # the runner image already ships an SDK; the next step re-resolves it
 
-      - name: Build APK
-        run: gradle assembleDebug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - name: Cache Gradle wrapper and dependencies
+        uses: gradle/actions/setup-gradle@v6
         with:
-          name: RJNX-Game-Booster
-          path: app/build/outputs/apk/debug/*.apk
+          gradle-version: wrapper
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      - name: Install SDK platform and build-tools
+        run: |
+          set -uo pipefail
+          SDKM=""
+          for cand in "$(command -v sdkmanager || true)" \
+                      "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+                      $(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager 2>/dev/null); do
+            if [ -n "$cand" ] && [ -x "$cand" ]; then SDKM="$cand"; break; fi
+          done
+          if [ -z "$SDKM" ]; then
+            echo "::error::sdkmanager not found - install Android cmdline-tools on the runner"
+            exit 1
+          fi
+          echo "Using sdkmanager: $SDKM (ANDROID_HOME=$ANDROID_HOME)"
+          yes | "$SDKM" --licenses >/dev/null 2>&1 || true
+          "$SDKM" --install "platform-tools" "build-tools;${ANDROID_BUILD_TOOLS}" >/dev/null || true
+          # compileSdk is API 36 minor 1; fall back to plain 36 when the minor platform is absent.
+          installed=""
+          for pkg in "platforms;android-36.1" "platforms;android-36"; do
+            if "$SDKM" --install "$pkg" >/dev/null 2>&1; then installed="$pkg"; break; fi
+          done
+          if [ -z "$installed" ]; then
+            echo "::error::no usable Android platform (android-36.1 / android-36) could be installed"
+            exit 1
+          fi
+          echo "Using SDK platform: $installed"
+          "$SDKM" --list_installed 2>/dev/null | sed -n '1,30p'
+
+      - name: Materialise local secrets file
+        # The Secrets plugin reads .env (git-ignored); .env.example is the committed template.
+        run: |
+          [ -f .env ] || cp .env.example .env
+          [ -f app/.env ] || cp .env.example app/.env
+
+      - name: Generate signing keystores (throwaway CI keys)
+        run: |
+          if [ ! -f debug.keystore ]; then
+            keytool -genkeypair -v -keystore debug.keystore -storepass android \
+              -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 \
+              -validity 10000 -dname "CN=RJNX Debug, OU=CI, O=RJNX, L=Cloud, C=US" >/dev/null
+          fi
+          if [ ! -f my-upload-key.jks ]; then
+            keytool -genkeypair -v -keystore my-upload-key.jks -storepass ci-upload-password \
+              -keypass ci-upload-password -alias upload -keyalg RSA -keysize 2048 \
+              -validity 10000 -dname "CN=RJNX Upload, OU=CI, O=RJNX, L=Cloud, C=US" >/dev/null
+          fi
+
+      - name: Build APKs
+        env:
+          STORE_PASSWORD: ci-upload-password
+          KEY_PASSWORD: ci-upload-password
+          KEY_ALIAS: upload
+        # pipefail: a Gradle failure must fail the step, not just the tail of the pipeline
+        run: set -o pipefail && ./gradlew --no-daemon --stacktrace --continue assembleDebug assembleRelease 2>&1 | tee build.log
+
+      - name: APK summary
+        if: success()
+        run: |
+          {
+            echo "## APK build succeeded"
+            echo
+            echo "| Artifact | Size |"
+            echo "| --- | --- |"
+            find app/build/outputs/apk -name "*.apk" -printf "| %f | %s bytes |\n" | sort
+            echo
+            echo 'Install with `adb install -r app/build/outputs/apk/debug/app-debug.apk`'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload APKs
+        uses: actions/upload-artifact@v7
+        with:
+          name: RJNX-Game-Booster-APK
+          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Report failure on the commit
+        # Job logs stay human-readable; this check-run puts the actionable excerpt on the commit
+        # so the build can be triaged from the API / PR without downloading artifacts.
+        if: failure()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.sha }}
+          JOB_ID: ${{ github.job }}
+        run: |
+          curl -sS -L -H "authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/jobs/$JOB_ID/logs" \
+            -o job.log || echo "job log download skipped"
+          python3 - <<'PY'
+          import json, os, re, urllib.request
+
+          def read(path):
+              try:
+                  return open(path, encoding="utf-8", errors="replace").read()
+              except OSError:
+                  return ""
+
+          build_log, job_log = read("build.log"), read("job.log")
+
+          chunks = []
+          # Kotlin/javac diagnostics are the useful part ("e: file:///...(12,3): ...").
+          diag = re.findall(r"^(?:e|w): file:///\S*?: \(\d+, \d+\): .*$", job_log, re.M)
+          if diag:
+              chunks.append("\n".join(dict.fromkeys(diag))[:4000])
+          errors = re.findall(r"^.*##\[error\].*$", job_log, re.M)
+          if errors:
+              chunks.append("\n".join(errors[-15:])[:1500])
+          marker = build_log.find("* What went wrong")
+          if marker != -1:
+              end = build_log.find("* Try:", marker)
+              end = build_log.find("\n", end) if end != -1 else marker + 2000
+              chunks.append("failing tasks:\n" + "\n".join(
+                  sorted(set(re.findall(r"^> Task .* FAILED$", build_log, re.M)))
+              ) + "\n\n" + build_log[marker:min(end + 200, marker + 1500)])
+          if not chunks:
+              chunks.append(build_log[-3000:] or job_log[-3000:] or "no gradle output captured")
+
+          summary = "APK build failed.\n\n```text\n" + "\n\n".join(chunks)[:6000] + "\n```"
+          payload = {
+              "name": "APK build failure",
+              "head_sha": os.environ["HEAD_SHA"],
+              "status": "completed",
+              "conclusion": "failure",
+              "output": {
+                  "title": "RJNX Game Booster - APK build",
+                  "summary": summary,
+                  "text": "See the job log for the full trace.",
+              },
+          }
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/check-runs",
+              data=json.dumps(payload).encode(),
+              headers={
+                  "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+                  "Accept": "application/vnd.github+json",
+                  "Content-Type": "application/json",
+              },
+              method="POST",
+          )
+          try:
+              urllib.request.urlopen(req, timeout=30)
+          except Exception as exc:  # reporting must never mask the real failure
+              print(f"check-run report skipped: {exc}")
+          PY
